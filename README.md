@@ -1,17 +1,67 @@
-# tracketiv
+# Tracketiv
 
-A new Flutter project.
+Daily, weekly, and group habit tracker with predefined goals, daily logs, comments, reactions, and reminders.
 
-## Getting Started
+## Stack
 
-This project is a starting point for a Flutter application.
+- **Mobile:** Flutter
+- **Backend:** Supabase (Postgres, Auth, Storage)
 
-A few resources to get you started if this is your first Flutter project:
+## Setup
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+### 1. Supabase project
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+1. Create a project at [supabase.com](https://supabase.com)
+2. Run SQL migrations in order from [`supabase/migrations/`](supabase/migrations/):
+   - `001_profiles.sql`
+   - `002_goals.sql`
+   - `003_social.sql`
+   - `004_reminders.sql`
+   - `005_seed_templates.sql`
+   - `006_storage_and_profile_search.sql`
+3. In **Authentication → URL Configuration**, add redirect URL:
+   - `io.supabase.tracketiv://reset-password`
+4. Enable Email auth provider
+
+### 2. Flutter app
+
+```bash
+cp .env.example .env
+# Edit .env with your SUPABASE_URL and SUPABASE_ANON_KEY
+flutter pub get
+flutter run
+```
+
+### 3. Deep links (password reset)
+
+Deep links for `io.supabase.tracketiv://reset-password` are configured in:
+
+- **Android:** `android/app/src/main/AndroidManifest.xml`
+- **iOS:** `ios/Runner/Info.plist`
+
+## Features
+
+- Register / login / forgot password / reset password
+- Browse predefined goals (weight loss, steps, water, meditation, etc.)
+- Join goals solo or as a group
+- Daily logs with numeric values and optional notes
+- Comments and reactions on logs
+- Progress charts, streaks, and group motivation
+- Local notification reminders per goal
+- Profile with display name and avatar
+
+## Project structure
+
+```
+lib/
+  core/           # theme, router, config
+  features/
+    auth/         # login, register, forgot, reset
+    goals/        # catalog, join, my goals, detail
+    logs/         # add log
+    social/       # comments, reactions
+    reminders/    # local notifications
+    profile/      # profile edit, avatar
+  shared/         # models, widgets, utils
+supabase/migrations/  # SQL schema and seeds
+```
