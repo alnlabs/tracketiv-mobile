@@ -47,5 +47,8 @@ app.*.map.json
 # Environment secrets
 .env
 
+# Local screenshots / scratch images
+flutter_01.png
+
 # Supabase edge function IDE dependencies
 supabase/functions/node_modules/
