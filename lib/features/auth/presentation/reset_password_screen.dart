@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../shared/utils/validators.dart';
 import '../../../shared/widgets/loading_button.dart';
 import '../providers/auth_provider.dart';
+import 'package:tracketiv/shared/utils/api_error_formatter.dart';
 
 class ResetPasswordScreen extends ConsumerStatefulWidget {
   const ResetPasswordScreen({super.key});
@@ -42,7 +43,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
       );
       context.go('/home');
     } catch (e) {
-      setState(() => _error = e.toString().replaceFirst('Exception: ', ''));
+      setState(() => _error = e.toUserMessage());
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }

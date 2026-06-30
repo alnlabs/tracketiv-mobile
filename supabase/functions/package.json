@@ -1,0 +1,11 @@
+{
+  "name": "tracketiv-supabase-functions",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.49.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.2"
+  }
+}

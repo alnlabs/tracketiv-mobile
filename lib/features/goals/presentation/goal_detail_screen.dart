@@ -4,14 +4,20 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../../shared/models/goal_membership.dart';
 import '../../../shared/models/log.dart';
 import '../../../shared/utils/progress_calculator.dart';
 import '../../../shared/utils/streak_calculator.dart';
+import '../../../shared/utils/scaffold_layout.dart';
+import '../../../shared/theme/app_typography.dart';
 import '../../../shared/widgets/error_view.dart';
+import '../../../shared/widgets/tracketiv_app_bar.dart';
+import '../../../shared/widgets/filter_pill.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../logs/providers/logs_provider.dart';
+import '../../reminders/providers/reminder_provider.dart';
 import '../../social/widgets/comment_section.dart';
-import '../../social/widgets/reaction_bar.dart';
+import '../../social/widgets/log_reaction_bar.dart';
 import '../providers/goals_provider.dart';
 
 class GoalDetailScreen extends ConsumerWidget {
@@ -26,24 +32,54 @@ class GoalDetailScreen extends ConsumerWidget {
     final membersAsync = ref.watch(goalMembersProvider(goalId));
     final everyoneLoggedAsync = ref.watch(everyoneLoggedTodayProvider(goalId));
     final user = ref.watch(currentUserProvider);
+    final isOwnerAsync = ref.watch(isGoalOwnerProvider(goalId));
+    final reminderAsync = ref.watch(goalReminderProvider(goalId));
 
     return Scaffold(
-      appBar: AppBar(
-        title: goalAsync.maybeWhen(data: (g) => Text(g.title), orElse: () => const Text('Goal')),
+      appBar: TracketivAppBar(
+        titleWidget: goalAsync.maybeWhen(
+          data: (g) => Text(g.title, style: AppTypography.appBarTitle(context)),
+          orElse: () => Text('Goal', style: AppTypography.appBarTitle(context)),
+        ),
         actions: [
+          goalAsync.maybeWhen(
+            data: (goal) {
+              if (goal.isGroup) {
+                final membersRoute = goal.groupId != null
+                    ? '/groups/${goal.groupId}/members'
+                    : '/goals/$goalId/members';
+                return IconButton(
+                  icon: const Icon(Icons.groups_outlined),
+                  onPressed: () => context.push(membersRoute),
+                );
+              }
+              return isOwnerAsync.maybeWhen(
+                data: (isOwner) => isOwner
+                    ? IconButton(
+                        icon: const Icon(Icons.edit_outlined),
+                        tooltip: 'Edit goal',
+                        onPressed: () => context.push('/goals/$goalId/edit'),
+                      )
+                    : const SizedBox.shrink(),
+                orElse: () => const SizedBox.shrink(),
+              );
+            },
+            orElse: () => const SizedBox.shrink(),
+          ),
           IconButton(
             icon: const Icon(Icons.notifications_outlined),
+            tooltip: 'Log reminder',
             onPressed: () => context.push('/goals/$goalId/reminder'),
           ),
         ],
       ),
       body: goalAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => ErrorView(message: e.toString(), onRetry: () => ref.invalidate(goalDetailProvider(goalId))),
+        error: (e, _) => ErrorView(error: e, onRetry: () => ref.invalidate(goalDetailProvider(goalId))),
         data: (goal) {
           return logsAsync.when(
             loading: () => const Center(child: CircularProgressIndicator()),
-            error: (e, _) => ErrorView(message: e.toString()),
+            error: (e, _) => ErrorView(error: e),
             data: (logs) {
               final myLogs = user != null
                   ? logs.where((l) => l.authorId == user.id).toList()
@@ -63,7 +99,12 @@ class GoalDetailScreen extends ConsumerWidget {
                   ref.invalidate(goalMembersProvider(goalId));
                 },
                 child: ListView(
-                  padding: const EdgeInsets.all(16),
+                  padding: EdgeInsets.fromLTRB(
+                    16,
+                    16,
+                    16,
+                    fabScrollBottomPadding(context),
+                  ),
                   children: [
                     if (goal.isGroup)
                       everyoneLoggedAsync.when(
@@ -88,12 +129,13 @@ class GoalDetailScreen extends ConsumerWidget {
                             Row(
                               children: [
                                 if (streak > 0)
-                                  Chip(
-                                    avatar: const Icon(Icons.local_fire_department, size: 16),
-                                    label: Text('$streak day streak'),
+                                  InfoPill(
+                                    icon: Icons.local_fire_department,
+                                    label: '$streak day streak',
                                   ),
+                                InfoPill(label: goal.cadenceLabel),
                                 const Spacer(),
-                                Chip(label: Text(goal.isGroup ? 'Group' : 'Solo')),
+                                InfoPill(label: goal.isGroup ? 'Group' : 'Solo'),
                               ],
                             ),
                             if (progress != null) ...[
@@ -107,9 +149,28 @@ class GoalDetailScreen extends ConsumerWidget {
                         ),
                       ),
                     ),
+                    reminderAsync.when(
+                      loading: () => const SizedBox.shrink(),
+                      error: (_, __) => const SizedBox.shrink(),
+                      data: (reminder) {
+                        if (reminder?.enabled == true) return const SizedBox.shrink();
+                        return Card(
+                          margin: const EdgeInsets.only(top: 8),
+                          child: ListTile(
+                            leading: const Icon(Icons.notifications_outlined),
+                            title: const Text('Set a log reminder'),
+                            subtitle: const Text(
+                              'Get a daily notification to log progress for this goal.',
+                            ),
+                            trailing: const Icon(Icons.chevron_right),
+                            onTap: () => context.push('/goals/$goalId/reminder'),
+                          ),
+                        );
+                      },
+                    ),
                     if (myLogs.length >= 2) ...[
                       const SizedBox(height: 16),
-                      Text('Your progress', style: Theme.of(context).textTheme.titleMedium),
+                      Text('Your progress', style: AppTypography.sectionTitle(context)),
                       const SizedBox(height: 8),
                       SizedBox(
                         height: 180,
@@ -132,15 +193,28 @@ class GoalDetailScreen extends ConsumerWidget {
                       ),
                     ],
                     membersAsync.when(
-                      data: (members) => Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        child: Text('${members.length} member${members.length == 1 ? '' : 's'}'),
-                      ),
+                      data: (members) {
+                        if (!goal.isGroup) return const SizedBox.shrink();
+                        final membersRoute = goal.groupId != null
+                            ? '/groups/${goal.groupId}/members'
+                            : '/goals/$goalId/members';
+                        return Card(
+                          child: ListTile(
+                            leading: _MemberAvatars(members: members),
+                            title: Text('${members.length} group member${members.length == 1 ? '' : 's'}'),
+                            subtitle: goal.groupName != null
+                                ? Text('${goal.groupName} · view members')
+                                : const Text('View members and invite others'),
+                            trailing: const Icon(Icons.chevron_right),
+                            onTap: () => context.push(membersRoute),
+                          ),
+                        );
+                      },
                       loading: () => const SizedBox.shrink(),
                       error: (_, __) => const SizedBox.shrink(),
                     ),
                     const SizedBox(height: 8),
-                    Text('Activity feed', style: Theme.of(context).textTheme.titleMedium),
+                    Text('Activity feed', style: AppTypography.sectionTitle(context)),
                     const SizedBox(height: 8),
                     if (logs.isEmpty)
                       const Padding(
@@ -188,7 +262,7 @@ class GoalDetailScreen extends ConsumerWidget {
                                     Text(log.note!),
                                   ],
                                   const SizedBox(height: 8),
-                                  ReactionBar(logId: log.id),
+                                  LogReactionBar(logId: log.id),
                                   CommentSection(logId: log.id),
                                 ],
                               ),
@@ -205,6 +279,36 @@ class GoalDetailScreen extends ConsumerWidget {
         onPressed: () => context.push('/goals/$goalId/log'),
         icon: const Icon(Icons.add),
         label: const Text('Add log'),
+      ),
+    );
+  }
+}
+
+class _MemberAvatars extends StatelessWidget {
+  const _MemberAvatars({required this.members});
+
+  final List<GoalMembership> members;
+
+  @override
+  Widget build(BuildContext context) {
+    final shown = members.take(3).toList();
+    return SizedBox(
+      width: 56,
+      height: 32,
+      child: Stack(
+        children: [
+          for (var i = 0; i < shown.length; i++)
+            Positioned(
+              left: i * 18.0,
+              child: CircleAvatar(
+                radius: 14,
+                child: Text(
+                  (shown[i].displayName ?? 'U')[0].toUpperCase(),
+                  style: const TextStyle(fontSize: 11),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }

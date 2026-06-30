@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../theme/app_typography.dart';
+
 class EmptyState extends StatelessWidget {
   const EmptyState({
     super.key,
@@ -26,7 +28,7 @@ class EmptyState extends StatelessWidget {
           children: [
             Icon(icon, size: 64, color: Theme.of(context).colorScheme.outline),
             const SizedBox(height: 16),
-            Text(title, style: Theme.of(context).textTheme.titleLarge, textAlign: TextAlign.center),
+            Text(title, style: AppTypography.emptyStateTitle(context), textAlign: TextAlign.center),
             if (subtitle != null) ...[
               const SizedBox(height: 8),
               Text(

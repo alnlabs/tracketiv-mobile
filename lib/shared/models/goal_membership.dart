@@ -16,6 +16,8 @@ class GoalMembership {
   final Map<String, dynamic>? profile;
 
   String? get displayName => profile?['display_name'] as String?;
+  String? get username => profile?['username'] as String?;
+  String get publicLabel => displayName ?? (username != null ? '@$username' : 'User');
 
   factory GoalMembership.fromJson(Map<String, dynamic> json) {
     return GoalMembership(

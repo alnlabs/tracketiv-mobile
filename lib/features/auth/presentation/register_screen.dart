@@ -4,7 +4,12 @@ import 'package:go_router/go_router.dart';
 
 import '../../../shared/utils/validators.dart';
 import '../../../shared/widgets/loading_button.dart';
+import '../../legal/presentation/legal_screens.dart';
+import '../../admin/providers/admin_provider.dart';
+import '../../admin/providers/admin_session_provider.dart';
 import '../providers/auth_provider.dart';
+import '../providers/session_sync_provider.dart';
+import 'package:tracketiv/shared/utils/api_error_formatter.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
@@ -15,6 +20,8 @@ class RegisterScreen extends ConsumerStatefulWidget {
 
 class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
+  final _usernameController = TextEditingController();
+  final _displayNameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmController = TextEditingController();
@@ -23,6 +30,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
   @override
   void dispose() {
+    _usernameController.dispose();
+    _displayNameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     _confirmController.dispose();
@@ -40,9 +49,24 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       final response = await ref.read(authRepositoryProvider).signUp(
             email: _emailController.text.trim(),
             password: _passwordController.text,
+            username: _usernameController.text.trim(),
+            displayName: _displayNameController.text.trim(),
           );
       if (!mounted) return;
       if (response.session != null) {
+        invalidateUserSessionData(ref);
+        final isAdmin = await ref.read(mainSessionIsAdminProvider.future);
+        if (isAdmin) {
+          await ref.read(authRepositoryProvider).signOut();
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Admin account created. Use Admin management login to continue.'),
+            ),
+          );
+          context.go('/admin/login');
+          return;
+        }
+        await ref.read(adminSessionActiveProvider.notifier).deactivate();
         context.go('/home');
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -53,7 +77,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         context.go('/login');
       }
     } catch (e) {
-      setState(() => _error = e.toString().replaceFirst('Exception: ', ''));
+      setState(() => _error = e.toUserMessage());
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -71,6 +95,27 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                TextFormField(
+                  controller: _usernameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Username',
+                    hintText: 'johndoe',
+                    prefixText: '@',
+                  ),
+                  autocorrect: false,
+                  textInputAction: TextInputAction.next,
+                  validator: Validators.username,
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _displayNameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Display name (optional)',
+                    hintText: 'John Doe',
+                  ),
+                  textInputAction: TextInputAction.next,
+                ),
+                const SizedBox(height: 16),
                 TextFormField(
                   controller: _emailController,
                   decoration: const InputDecoration(labelText: 'Email'),
@@ -113,6 +158,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     ),
                   ],
                 ),
+                const SizedBox(height: 8),
+                const AuthLegalLinks(),
               ],
             ),
           ),

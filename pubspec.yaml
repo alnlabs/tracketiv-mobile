@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.0.0+1
+version: 1.0.0+3
 
 environment:
   sdk: ^3.12.0
@@ -39,7 +39,15 @@ dependencies:
   fl_chart: ^0.70.2
   image_picker: ^1.1.2
   flutter_local_notifications: ^19.1.0
+  firebase_core: ^3.15.2
+  firebase_messaging: ^15.2.10
   timezone: ^0.10.1
+  google_fonts: ^8.1.0
+  shared_preferences: ^2.5.3
+  http: ^1.4.0
+  connectivity_plus: ^7.2.0
+  path_provider: ^2.1.6
+  package_info_plus: ^10.2.0
 
 dev_dependencies:
   flutter_test:
@@ -51,6 +59,27 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
+  flutter_native_splash: ^2.4.6
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: assets/branding/tracketiv_app_icon.png
+  adaptive_icon_background: "#E8F5E9"
+  adaptive_icon_foreground: assets/branding/tracketiv_app_icon.png
+  remove_alpha_ios: true
+  background_color_ios: "#FFFFFF"
+
+flutter_native_splash:
+  color: "#FFFFFF"
+  image: assets/branding/tracketiv_app_icon.png
+  android_12:
+    color: "#FFFFFF"
+    image: assets/branding/tracketiv_app_icon.png
+  ios: true
+  android: true
+  web: false
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -65,6 +94,7 @@ flutter:
 
   assets:
     - .env
+    - assets/branding/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

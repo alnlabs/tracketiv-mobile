@@ -46,3 +46,6 @@ app.*.map.json
 
 # Environment secrets
 .env
+
+# Supabase edge function IDE dependencies
+supabase/functions/node_modules/

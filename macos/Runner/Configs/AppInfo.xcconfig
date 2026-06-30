@@ -8,7 +8,7 @@
 PRODUCT_NAME = tracketiv
 
 // The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = com.tracketiv.tracketiv
+PRODUCT_BUNDLE_IDENTIFIER = com.alnlabs.tracketiv
 
 // The copyright displayed in application information
 PRODUCT_COPYRIGHT = Copyright © 2026 com.tracketiv. All rights reserved.

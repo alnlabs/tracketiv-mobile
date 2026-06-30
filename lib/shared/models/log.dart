@@ -19,7 +19,20 @@ class LogEntry {
   final DateTime createdAt;
   final Map<String, dynamic>? authorProfile;
 
-  String? get authorName => authorProfile?['display_name'] as String?;
+  String? get authorName =>
+      authorProfile?['display_name'] as String? ??
+      (authorProfile?['username'] != null ? '@${authorProfile!['username']}' : null);
+
+  /// Calendar date in local timezone for DB `log_date` (date column).
+  static String formatLogDate(DateTime date) {
+    final local = date.toLocal();
+    final y = local.year;
+    final m = local.month.toString().padLeft(2, '0');
+    final d = local.day.toString().padLeft(2, '0');
+    return '$y-$m-$d';
+  }
+
+  String get logDateString => formatLogDate(logDate);
 
   factory LogEntry.fromJson(Map<String, dynamic> json) {
     return LogEntry(
@@ -37,7 +50,12 @@ class LogEntry {
   Map<String, dynamic> toInsertJson() => {
         'user_goal_id': userGoalId,
         'author_id': authorId,
-        'log_date': logDate.toIso8601String().split('T').first,
+        'log_date': logDateString,
+        'value': value,
+        'note': note,
+      };
+
+  Map<String, dynamic> toUpdateJson() => {
         'value': value,
         'note': note,
       };

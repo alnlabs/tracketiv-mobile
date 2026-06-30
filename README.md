@@ -19,6 +19,9 @@ Daily, weekly, and group habit tracker with predefined goals, daily logs, commen
    - `004_reminders.sql`
    - `005_seed_templates.sql`
    - `006_storage_and_profile_search.sql`
+   - `007_groups_invites.sql`
+   - `008_usernames.sql`
+   - `009_profile_fields.sql`
 3. In **Authentication → URL Configuration**, add redirect URL:
    - `io.supabase.tracketiv://reset-password`
 4. Enable Email auth provider
@@ -30,6 +33,25 @@ cp .env.example .env
 # Edit .env with your SUPABASE_URL and SUPABASE_ANON_KEY
 flutter pub get
 flutter run
+```
+
+**Web (Chrome) — use a fixed port so Supabase auth works:**
+
+```bash
+flutter run -d chrome --web-port=8080
+```
+
+Then in Supabase **Authentication → URL Configuration** set:
+
+| Field | Value |
+|-------|--------|
+| **Site URL** | `http://localhost:8080` |
+| **Redirect URLs** | `http://localhost:8080/**` |
+
+Also add (for mobile password reset):
+
+```
+io.supabase.tracketiv://reset-password
 ```
 
 ### 3. Deep links (password reset)

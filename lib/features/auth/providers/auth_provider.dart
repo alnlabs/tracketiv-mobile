@@ -15,6 +15,8 @@ final authStateProvider = StreamProvider<AuthState>((ref) {
   return ref.watch(authRepositoryProvider).authStateChanges;
 });
 
+/// Rebuilds when the Supabase session changes (login, logout, token refresh).
 final currentUserProvider = Provider<User?>((ref) {
+  ref.watch(authStateProvider);
   return ref.watch(authRepositoryProvider).currentUser;
 });

@@ -1,42 +1,76 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../../../core/constants/app_constants.dart';
+import '../../../core/contracts/repository_contracts.dart';
+import '../../../core/offline/connectivity_provider.dart';
+import '../../../core/offline/offline_cache.dart';
+import '../../../core/offline/offline_fetch.dart';
+import '../../../core/offline/offline_write_exception.dart';
+import '../../../shared/utils/reactions.dart';
+import '../../../shared/utils/supabase_embeds.dart';
 import '../../../shared/models/log_comment.dart';
 import '../../../shared/models/log_reaction.dart';
 
-class SocialRepository {
-  SocialRepository(this._client);
+class SocialRepository implements SocialRepositoryContract {
+  SocialRepository(
+    this._client,
+    this._cache,
+    this._connectivity,
+  );
 
   final SupabaseClient _client;
+  final OfflineCache _cache;
+  final OnlineChecker _connectivity;
 
-  Future<List<LogComment>> getComments(String logId) async {
-    final data = await _client
-        .from('log_comments')
-        .select('*, profiles(display_name, avatar_url)')
-        .eq('log_id', logId)
-        .order('created_at');
-    return (data as List).map((e) => LogComment.fromJson(e)).toList();
+  Future<void> _requireOnline() async {
+    if (!await _connectivity.checkOnline()) {
+      throw const OfflineWriteException();
+    }
   }
 
-  Future<LogComment> addComment({
+  Future<List<LogComment>> getComments(String logId) {
+    return fetchListWithCache(
+      cache: _cache,
+      cacheKey: 'comments_$logId',
+      emptyMessage: 'Comments are not available offline.',
+      fetchRows: () async {
+        final data = await _client
+            .from('log_comments')
+            .select(SupabaseEmbeds.commentWithAuthor)
+            .eq('log_id', logId)
+            .order('created_at');
+        return (data as List).cast<Map<String, dynamic>>();
+      },
+      parse: LogComment.fromJson,
+    );
+  }
+
+  Future<void> addComment({
     required String logId,
     required String authorId,
     required String body,
   }) async {
-    final data = await _client
-        .from('log_comments')
-        .insert({'log_id': logId, 'author_id': authorId, 'body': body})
-        .select('*, profiles(display_name, avatar_url)')
-        .single();
-    return LogComment.fromJson(data);
+    await _requireOnline();
+    await _client.from('log_comments').insert({
+      'log_id': logId,
+      'author_id': authorId,
+      'body': body,
+    });
   }
 
-  Future<List<LogReaction>> getReactions(String logId) async {
-    final data = await _client
-        .from('log_reactions')
-        .select()
-        .eq('log_id', logId);
-    return (data as List).map((e) => LogReaction.fromJson(e)).toList();
+  Future<List<LogReaction>> getReactions(String logId) {
+    return fetchListWithCache(
+      cache: _cache,
+      cacheKey: 'reactions_$logId',
+      emptyMessage: 'Reactions are not available offline.',
+      fetchRows: () async {
+        final data = await _client
+            .from('log_reactions')
+            .select()
+            .eq('log_id', logId);
+        return (data as List).cast<Map<String, dynamic>>();
+      },
+      parse: LogReaction.fromJson,
+    );
   }
 
   Future<List<ReactionSummary>> getReactionSummaries(
@@ -44,7 +78,7 @@ class SocialRepository {
     String currentUserId,
   ) async {
     final reactions = await getReactions(logId);
-    return AppConstants.reactionTypes.map((type) {
+    return Reactions.types.map((type) {
       final ofType = reactions.where((r) => r.emojiType == type).toList();
       return ReactionSummary(
         emojiType: type,
@@ -59,6 +93,7 @@ class SocialRepository {
     required String userId,
     required String emojiType,
   }) async {
+    await _requireOnline();
     final existing = await _client
         .from('log_reactions')
         .select()

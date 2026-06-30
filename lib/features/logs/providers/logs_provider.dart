@@ -1,11 +1,18 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/contracts/repository_contracts.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../../../core/offline/connectivity_provider.dart';
+import '../../../core/offline/offline_provider.dart';
 import '../data/logs_repository.dart';
 import '../../../shared/models/log.dart';
 
-final logsRepositoryProvider = Provider<LogsRepository>((ref) {
-  return LogsRepository(ref.watch(supabaseClientProvider));
+final logsRepositoryProvider = Provider<LogsRepositoryContract>((ref) {
+  return LogsRepository(
+    ref.watch(supabaseClientProvider),
+    ref.watch(offlineCacheProvider),
+    ref.watch(connectivityServiceProvider),
+  );
 });
 
 final goalLogsProvider = FutureProvider.family<List<LogEntry>, String>((ref, goalId) {

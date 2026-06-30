@@ -3,9 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/constants/app_constants.dart';
-import '../../../shared/utils/validators.dart';
+import '../../legal/presentation/legal_screens.dart';
+import '../../../shared/widgets/auth_credential_fields.dart';
 import '../../../shared/widgets/loading_button.dart';
+import '../../admin/providers/admin_provider.dart';
+import '../../admin/providers/admin_session_provider.dart';
 import '../providers/auth_provider.dart';
+import '../providers/session_sync_provider.dart';
+import 'package:tracketiv/shared/utils/api_error_formatter.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -16,14 +21,32 @@ class LoginScreen extends ConsumerStatefulWidget {
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController();
+  final _identifierController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLoading = false;
   String? _error;
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _enforceNonAdminSession());
+  }
+
+  Future<void> _enforceNonAdminSession() async {
+    if (ref.read(currentUserProvider) == null) return;
+    final adminMode = ref.read(adminSessionActiveProvider).valueOrNull ?? false;
+    if (adminMode) return;
+    final isAdmin = await ref.read(mainSessionIsAdminProvider.future);
+    if (!mounted || !isAdmin) return;
+    await ref.read(authRepositoryProvider).signOut();
+    setState(() {
+      _error = 'Admin accounts must use Admin management login.';
+    });
+  }
+
+  @override
   void dispose() {
-    _emailController.dispose();
+    _identifierController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
@@ -37,12 +60,27 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     try {
       await ref.read(authRepositoryProvider).signIn(
-            email: _emailController.text.trim(),
+            emailOrUsername: _identifierController.text.trim(),
             password: _passwordController.text,
           );
+      invalidateUserSessionData(ref);
+      final isAdmin = await ref.read(mainSessionIsAdminProvider.future);
+      if (isAdmin) {
+        await ref.read(authRepositoryProvider).signOut();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Admin accounts must use Admin management login.'),
+            ),
+          );
+          context.go('/admin/login');
+        }
+        return;
+      }
+      await ref.read(adminSessionActiveProvider.notifier).deactivate();
       if (mounted) context.go('/home');
     } catch (e) {
-      setState(() => _error = e.toString().replaceFirst('Exception: ', ''));
+      setState(() => _error = e.toUserMessage());
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -77,19 +115,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 48),
-                TextFormField(
-                  controller: _emailController,
-                  decoration: const InputDecoration(labelText: 'Email'),
-                  keyboardType: TextInputType.emailAddress,
-                  autocorrect: false,
-                  validator: Validators.email,
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _passwordController,
-                  decoration: const InputDecoration(labelText: 'Password'),
-                  obscureText: true,
-                  validator: Validators.password,
+                AuthCredentialFields(
+                  identifierController: _identifierController,
+                  passwordController: _passwordController,
                 ),
                 if (_error != null) ...[
                   const SizedBox(height: 16),
@@ -120,6 +148,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ),
                   ],
                 ),
+                const SizedBox(height: 8),
+                TextButton(
+                  onPressed: () => context.go('/admin/login'),
+                  child: const Text('Admin management login'),
+                ),
+                const SizedBox(height: 8),
+                const AuthLegalLinks(),
               ],
             ),
           ),

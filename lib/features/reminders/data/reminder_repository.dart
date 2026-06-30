@@ -1,8 +1,9 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../core/contracts/repository_contracts.dart';
 import '../../../shared/models/reminder.dart';
 
-class ReminderRepository {
+class ReminderRepository implements ReminderRepositoryContract {
   ReminderRepository(this._client);
 
   final SupabaseClient _client;
@@ -21,7 +22,7 @@ class ReminderRepository {
   Future<List<Reminder>> getEnabledReminders(String userId) async {
     final data = await _client
         .from('reminders')
-        .select('*, user_goals(title)')
+        .select('*, user_goals(title, cadence, cadence_interval_days, created_at)')
         .eq('user_id', userId)
         .eq('enabled', true);
     return (data as List).map((e) => Reminder.fromJson(e)).toList();

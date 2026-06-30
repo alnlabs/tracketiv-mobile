@@ -1,12 +1,19 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/contracts/repository_contracts.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../../../core/offline/connectivity_provider.dart';
+import '../../../core/offline/offline_provider.dart';
 import '../data/social_repository.dart';
 import '../../../shared/models/log_comment.dart';
 import '../../../shared/models/log_reaction.dart';
 
-final socialRepositoryProvider = Provider<SocialRepository>((ref) {
-  return SocialRepository(ref.watch(supabaseClientProvider));
+final socialRepositoryProvider = Provider<SocialRepositoryContract>((ref) {
+  return SocialRepository(
+    ref.watch(supabaseClientProvider),
+    ref.watch(offlineCacheProvider),
+    ref.watch(connectivityServiceProvider),
+  );
 });
 
 final logCommentsProvider = FutureProvider.family<List<LogComment>, String>((ref, logId) {

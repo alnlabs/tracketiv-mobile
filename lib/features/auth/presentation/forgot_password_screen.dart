@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../shared/utils/validators.dart';
 import '../../../shared/widgets/loading_button.dart';
 import '../providers/auth_provider.dart';
+import 'package:tracketiv/shared/utils/api_error_formatter.dart';
 
 class ForgotPasswordScreen extends ConsumerStatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -37,7 +38,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
       await ref.read(authRepositoryProvider).resetPassword(_emailController.text.trim());
       setState(() => _emailSent = true);
     } catch (e) {
-      setState(() => _error = e.toString().replaceFirst('Exception: ', ''));
+      setState(() => _error = e.toUserMessage());
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }

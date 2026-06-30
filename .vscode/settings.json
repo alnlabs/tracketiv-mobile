@@ -1,0 +1,5 @@
+{
+  "deno.enable": false,
+  "typescript.tsdk": "supabase/functions/node_modules/typescript/lib",
+  "typescript.enablePromptUseWorkspaceTsdk": true
+}

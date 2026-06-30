@@ -34,4 +34,16 @@ class GoalTemplate {
       icon: json['icon'] as String?,
     );
   }
+
+  Map<String, dynamic> toAdminJson() => {
+        if (id.isNotEmpty) 'id': id,
+        'title': title,
+        'description': description ?? '',
+        'category': category,
+        'metric_type': metricType,
+        'metric_unit': metricUnit ?? '',
+        'cadence': cadence,
+        'default_target': defaultTarget,
+        'icon': icon ?? '',
+      };
 }

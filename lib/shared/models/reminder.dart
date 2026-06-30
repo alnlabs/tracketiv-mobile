@@ -7,6 +7,10 @@ class Reminder {
     required this.daysOfWeek,
     required this.enabled,
     this.lastSentAt,
+    this.goalTitle,
+    this.goalCadence,
+    this.goalCadenceIntervalDays,
+    this.goalCreatedAt,
   });
 
   final String id;
@@ -16,9 +20,16 @@ class Reminder {
   final List<int> daysOfWeek;
   final bool enabled;
   final DateTime? lastSentAt;
+  final String? goalTitle;
+  final String? goalCadence;
+  final int? goalCadenceIntervalDays;
+  final DateTime? goalCreatedAt;
 
   factory Reminder.fromJson(Map<String, dynamic> json) {
     final days = json['days_of_week'];
+    final goal = json['user_goals'];
+    final goalMap = goal is Map<String, dynamic> ? goal : null;
+
     return Reminder(
       id: json['id'] as String,
       userGoalId: json['user_goal_id'] as String,
@@ -28,6 +39,12 @@ class Reminder {
       enabled: json['enabled'] as bool? ?? true,
       lastSentAt: json['last_sent_at'] != null
           ? DateTime.parse(json['last_sent_at'] as String)
+          : null,
+      goalTitle: goalMap?['title'] as String?,
+      goalCadence: goalMap?['cadence'] as String?,
+      goalCadenceIntervalDays: (goalMap?['cadence_interval_days'] as num?)?.toInt(),
+      goalCreatedAt: goalMap?['created_at'] != null
+          ? DateTime.parse(goalMap!['created_at'] as String)
           : null,
     );
   }
